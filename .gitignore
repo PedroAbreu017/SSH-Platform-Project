@@ -1,0 +1,43 @@
+# Java/Maven
+backend/target/
+backend/.mvn/
+backend/mvnw
+backend/mvnw.cmd
+backend/*.jar
+backend/*.war
+backend/*.ear
+backend/.classpath
+backend/.project
+backend/.settings/
+
+# Go
+ssh-gateway/ssh-gateway
+ssh-gateway/ssh-gateway.exe
+ssh-gateway/host_key
+ssh-gateway/host_key.pub
+ssh-gateway/config.json
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+
+# OS files
+.DS_Store
+Thumbs.db
+*.tmp
+*.log
+
+# Environment
+.env
+.env.local
+.env.production
+
+# Docker
+.dockerignore
+
+# Temporary files
+*.bak
+*~

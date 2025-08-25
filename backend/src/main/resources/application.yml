@@ -1,0 +1,59 @@
+spring:
+  application:
+    name: ssh-platform
+  
+  profiles:
+    active: dev
+  
+  # PostgreSQL Database
+  datasource:
+    url: jdbc:postgresql://localhost:5432/platform
+    username: platform
+    password: platform123
+    driver-class-name: org.postgresql.Driver
+  
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+  
+  data:
+    redis:
+      url: redis://localhost:6379
+      timeout: 2000ms
+
+server:
+  port: 8080
+
+# JWT Configuration
+jwt:
+  secret: mySecretKey123456789012345678901234567890
+  expiration: 3600000
+  refresh-expiration: 86400000
+
+# Docker Configuration (Linux)
+docker:
+  host: unix:///var/run/docker.sock
+  tls-verify: false
+
+# Management endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+# Logging
+logging:
+  level:
+    com.platform: DEBUG
+    org.springframework.security: DEBUG
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
