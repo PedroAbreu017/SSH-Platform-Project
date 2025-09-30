@@ -7,7 +7,7 @@ services:
       POSTGRES_USER: platform
       POSTGRES_PASSWORD: platform123
     ports:
-      - "5432:5432"
+      - "5434:5432"  # Mapear porta externa 5434 para interna 5432
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
@@ -15,7 +15,7 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - "6370:6379"  # Mapear porta externa 6370 para interna 6379
     restart: unless-stopped
 
 volumes:

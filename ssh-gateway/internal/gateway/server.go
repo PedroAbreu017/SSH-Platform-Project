@@ -171,8 +171,12 @@ func (s *Server) startContainerSelection(channel ssh.Channel, containers []api.C
 		return
 	}
 
+	channel.Write([]byte("\r\nOptions:\r\n"))
+	channel.Write([]byte("• Select number to connect\r\n"))
+	channel.Write([]byte("• Type 'logs' to view container logs\r\n"))
+
 	// Show prompt for selection
-	channel.Write([]byte("\r\nSelect container number (1-" + strconv.Itoa(len(containers)) + ") or 'quit': "))
+	channel.Write([]byte("\r\nSelect container number (1-" + strconv.Itoa(len(containers)) + "), 'logs', or 'quit': "))
 
 	// Read user input
 	input := make([]byte, 1)
@@ -197,6 +201,22 @@ func (s *Server) startContainerSelection(channel ssh.Channel, containers []api.C
 					return
 				}
 
+				// Handle logs command
+				if selectionStr == "logs" {
+					channel.Write([]byte("\r\n"))
+					s.handleLogsCommand(channel, containers, token)
+					
+					// Show menu again and prompt for new selection
+					channel.Write([]byte("\r\n"))
+					s.showContainerMenu(channel, containers)
+					channel.Write([]byte("\r\nOptions:\r\n"))
+					channel.Write([]byte("• Select number to connect\r\n"))
+					channel.Write([]byte("• Type 'logs' to view container logs\r\n"))
+					channel.Write([]byte("\r\nSelect container number (1-" + strconv.Itoa(len(containers)) + "), 'logs', or 'quit': "))
+					selection.Reset()
+					continue
+				}
+
 				// Parse container selection
 				containerIndex, err := strconv.Atoi(selectionStr)
 				if err != nil || containerIndex < 1 || containerIndex > len(containers) {
@@ -210,7 +230,7 @@ func (s *Server) startContainerSelection(channel ssh.Channel, containers []api.C
 				// Check if container is running
 				if !selectedContainer.Running {
 					channel.Write([]byte(fmt.Sprintf("\r\nContainer '%s' is not running. Please start it first.\r\n", selectedContainer.Name)))
-					channel.Write([]byte("Select another container or 'quit': "))
+					channel.Write([]byte("Select another container, 'logs', or 'quit': "))
 					selection.Reset()
 					continue
 				}
@@ -261,4 +281,77 @@ func (s *Server) showContainerMenu(channel ssh.Channel, containers []api.Contain
 func (s *Server) handleDirectTCPIP(sshConn *ssh.ServerConn, newChannel ssh.NewChannel) {
 	// Port forwarding implementation could go here
 	newChannel.Reject(ssh.Prohibited, "port forwarding not implemented")
+}
+func (s *Server) handleLogsCommand(channel ssh.Channel, containers []api.Container, token string) {
+	if len(containers) == 0 {
+		channel.Write([]byte("No containers available.\r\n"))
+		return
+	}
+
+	// Show container list for logs
+	channel.Write([]byte("\r\nSelect container for logs:\r\n"))
+	for i, container := range containers {
+		channel.Write([]byte(fmt.Sprintf("%d. %s\r\n", i+1, container.Name)))
+	}
+	
+	channel.Write([]byte("Container number: "))
+	
+	// Read container selection
+	containerIndex := s.readUserInput(channel)
+	
+	// Parse selection
+	index, err := strconv.Atoi(strings.TrimSpace(containerIndex))
+	if err != nil || index < 1 || index > len(containers) {
+		channel.Write([]byte("Invalid selection.\r\n"))
+		return
+	}
+	
+	container := containers[index-1]
+	
+	// Display logs
+	channel.Write([]byte(fmt.Sprintf("\r\n=== Container Logs - %s ===\r\n", container.Name)))
+	channel.Write([]byte("Fetching logs...\r\n\r\n"))
+
+	logs, err := s.apiClient.GetContainerLogs(token, container.ID, 50)
+	if err != nil {
+		channel.Write([]byte(fmt.Sprintf("Error getting logs: %v\r\n", err)))
+		return
+	}
+
+	if len(logs) == 0 {
+		channel.Write([]byte("No logs available.\r\n"))
+	} else {
+		for _, log := range logs {
+			channel.Write([]byte(log + "\r\n"))
+		}
+	}
+
+	channel.Write([]byte("\r\n--- End of logs ---\r\n"))
+	channel.Write([]byte("Press Enter to continue..."))
+	s.readUserInput(channel)
+}
+
+// readUserInput helper function to read user input from SSH channel  
+func (s *Server) readUserInput(channel ssh.Channel) string {
+	input := make([]byte, 1)
+	var result strings.Builder
+	
+	for {
+		n, err := channel.Read(input)
+		if err != nil || n == 0 {
+			break
+		}
+		
+		char := input[0]
+		if char == '\r' || char == '\n' {
+			break
+		}
+		
+		if char >= 32 && char <= 126 { // Printable characters
+			channel.Write(input[:n]) // Echo character
+			result.WriteByte(char)
+		}
+	}
+	
+	return result.String()
 }

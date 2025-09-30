@@ -366,4 +366,9 @@ private static class ContainerConfig {
     private String generateContainerName(String username, String name) {
         return String.format("platform_%s_%s_%d", username, name, System.currentTimeMillis());
     }
+
+    public Container getContainerById(Long id) {
+    return containerRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Container not found with id: " + id));
+    }
 }

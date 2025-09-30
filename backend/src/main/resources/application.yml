@@ -7,7 +7,7 @@ spring:
   
   # PostgreSQL Database
   datasource:
-    url: jdbc:postgresql://localhost:5432/platform
+    url: jdbc:postgresql://localhost:5434/platform
     username: platform
     password: platform123
     driver-class-name: org.postgresql.Driver
@@ -23,7 +23,7 @@ spring:
   
   data:
     redis:
-      url: redis://localhost:6379
+      url: redis://localhost:6370
       timeout: 2000ms
 
 server:
@@ -35,7 +35,7 @@ jwt:
   expiration: 3600000
   refresh-expiration: 86400000
 
-# Docker Configuration (Linux)
+# Docker Configuration - Default (Unix/Linux)
 docker:
   host: unix:///var/run/docker.sock
   tls-verify: false
@@ -57,3 +57,25 @@ logging:
     org.springframework.security: DEBUG
   pattern:
     console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+---
+# Profile Windows
+spring:
+  config:
+    activate:
+      on-profile: windows
+
+docker:
+  host: tcp://localhost:2375
+  tls-verify: false
+
+---
+# Profile Unix/Linux (explícito)
+spring:
+  config:
+    activate:
+      on-profile: unix
+
+docker:
+  host: unix:///var/run/docker.sock
+  tls-verify: false
