@@ -23,6 +23,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.github.dockerjava.api.async.ResultCallback;
+import com.github.dockerjava.api.model.Frame;
+import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -366,6 +374,63 @@ private static class ContainerConfig {
     private String generateContainerName(String username, String name) {
         return String.format("platform_%s_%s_%d", username, name, System.currentTimeMillis());
     }
+
+    public String getContainerLogs(Long containerId, int tailLines) {
+    logger.debug("Getting logs for container ID: {}, tail: {}", containerId, tailLines);
+    
+    Container container = containerRepository.findById(containerId)
+            .orElseThrow(() -> new ResourceNotFoundException("Container not found with id: " + containerId));
+
+    try {
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        
+        dockerClient.logContainerCmd(container.getContainerId())
+                .withStdOut(true)
+                .withStdErr(true)
+                .withTail(tailLines)
+                .exec(new ResultCallback.Adapter<Frame>() {
+                    @Override
+                    public void onNext(Frame frame) {
+                        try {
+                            outputStream.write(frame.getPayload());
+                        } catch (Exception e) {
+                            logger.error("Error writing log frame", e);
+                        }
+                    }
+                })
+                .awaitCompletion();
+
+        return outputStream.toString(StandardCharsets.UTF_8);
+        
+    } catch (Exception e) {
+        logger.error("Failed to get logs for container: {}", container.getContainerId(), e);
+        throw new RuntimeException("Failed to get container logs: " + e.getMessage());
+    }
+}
+
+public void streamContainerLogs(Long containerId, ResultCallback.Adapter<Frame> callback) {
+    logger.debug("Starting log stream for container ID: {}", containerId);
+    
+    Container container = containerRepository.findById(containerId)
+            .orElseThrow(() -> new ResourceNotFoundException("Container not found with id: " + containerId));
+
+    if (!container.isRunning()) {
+        throw new IllegalStateException("Container is not running");
+    }
+
+    try {
+        dockerClient.logContainerCmd(container.getContainerId())
+                .withStdOut(true)
+                .withStdErr(true)
+                .withFollowStream(true)
+                .withTailAll()
+                .exec(callback);
+                
+    } catch (Exception e) {
+        logger.error("Failed to stream logs for container: {}", container.getContainerId(), e);
+        throw new RuntimeException("Failed to stream container logs: " + e.getMessage());
+    }
+}
 
     public Container getContainerById(Long id) {
     return containerRepository.findById(id)
