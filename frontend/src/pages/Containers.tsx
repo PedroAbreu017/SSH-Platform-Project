@@ -14,6 +14,7 @@ import {
 import { containerApi } from '../services/api';
 import toast from 'react-hot-toast';
 import ContainerLogs from '../components/ContainerLogs';
+import ContainerLogsLive from '../components/ContainerLogsLive';
 
 
 interface Container {
@@ -37,6 +38,8 @@ const Containers: React.FC = () => {
   });
   const [submitting, setSubmitting] = useState(false);
   const [showLogsModal, setShowLogsModal] = useState<{id: number, name: string} | null>(null);
+  const [showLiveLogsModal, setShowLiveLogsModal] = useState<{id: number, name: string} | null>(null);
+
 
   useEffect(() => {
     loadContainers();
@@ -291,6 +294,14 @@ const Containers: React.FC = () => {
                         >
                           <EyeIcon className="w-4 h-4" />
                         </button>
+                        <button
+  onClick={() => setShowLiveLogsModal({id: container.id, name: container.name})}
+  className="p-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md transition-colors"
+  title="Live Logs"
+>
+  <PlayIcon className="w-4 h-4" />
+</button>
+
                       </>
                     )}
                   </div>
@@ -406,6 +417,14 @@ const Containers: React.FC = () => {
         onClose={() => setShowLogsModal(null)}
       />
     )}
+    {showLiveLogsModal && (
+  <ContainerLogsLive
+    containerId={showLiveLogsModal.id}
+    containerName={showLiveLogsModal.name}
+    onClose={() => setShowLiveLogsModal(null)}
+  />
+)}
+
   </div>
 );
 };
